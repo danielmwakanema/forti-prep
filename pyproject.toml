@@ -4,4 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "bottleneck>=1.6.0",
+    "cf-units>=3.3.1",
+    "click>=8.4.1",
+    "netcdf4>=1.7.4",
+    "pydantic>=2.13.4",
+    "xarray>=2026.4.0",
+]
