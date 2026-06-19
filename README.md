@@ -1,4 +1,4 @@
-# nc2forti
+# forti-prep
 
 Converts NetCDF forecast files into the binary format expected by the [forti](https://github.com/metno/forti/) system, and writes the result to a local directory.
 

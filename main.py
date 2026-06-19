@@ -2,8 +2,8 @@ import typing
 
 import click
 
-from nc2forti.blob import BlobWriter
-from nc2forti.config import Configuration
+from forti_prep.blob import BlobWriter
+from forti_prep.config import Configuration
 
 
 @click.command()
