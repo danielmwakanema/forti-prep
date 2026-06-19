@@ -54,17 +54,22 @@ def speed(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data
 def from_direction(
     name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
 ) -> Data:
+    ret = to_direction(name, ds, cfg)
+    ret.values = (ret.values + 180) % 360
+    return ret
+
+
+def to_direction(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
     # TODO: Take projection into account
 
     x = read_values("", ds, cfg.variables["x"])
     y = read_values("", ds, cfg.variables["y"])
 
-    # make this into direction _from_, which is convention for wind and waves.
-    values = np.degrees(np.arctan2(y.values, x.values)) + 180
+    values = np.degrees(np.arctan2(y.values, x.values))
     return Data(
         name=name,
         # timesteps=x.timesteps,
-        values=values,
+        values=values % 360,  # force to be in range [0..360)
         times=ds.time.values,
         units="degrees",
     )
@@ -124,6 +129,7 @@ _conversion_function = typing.Callable[
 _conversions: typing.Dict[str, _conversion_function] = {
     "vector_to_speed": speed,
     "vector_to_direction_from": from_direction,
+    "vector_to_direction_to": to_direction,
     "weather_symbol_1h": symbol_1h,
     "weather_symbol_6h": symbol_6h,
     "weather_symbol_12h": symbol_12h,
