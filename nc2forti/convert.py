@@ -1,6 +1,7 @@
 import typing
 
 import numpy as np
+import pyproj
 import xarray as xr
 from cf_units import Unit
 
@@ -59,16 +60,45 @@ def from_direction(
     return ret
 
 
-def to_direction(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    # TODO: Take projection into account
+def _grid_rotation_angles(ds: xr.Dataset) -> np.ndarray | float:
+    """Return the clockwise angle (radians) from each grid point's y-axis to true north.
 
+    This is non-zero whenever the dataset's projection causes the grid axes to
+    diverge from geographic north/east (e.g. Lambert Conformal, Polar Stereographic).
+    Returns a scalar 0.0 when no grid-mapping variable is found.
+    """
+    grid_mapping_var = next(
+        (ds[v] for v in ds.data_vars if "grid_mapping_name" in ds[v].attrs), None
+    )
+    if grid_mapping_var is None:
+        return 0.0
+
+    crs = pyproj.CRS.from_cf(grid_mapping_var.attrs)
+    proj = pyproj.Proj(crs)
+
+    lat = ds["latitude"].values
+    lon = ds["longitude"].values
+
+    delta = 1e-5  # degrees — small enough for accuracy, large enough to avoid rounding
+    x1, y1 = proj(lon, lat)
+    x2, y2 = proj(lon, lat + delta)
+
+    dx = x2 - x1
+    dy = y2 - y1
+    # arctan2(dx, dy): angle of the true-north displacement vector from the grid y-axis,
+    # measured clockwise — i.e. how much the grid is rotated relative to geographic north.
+    return np.arctan2(dx, dy)
+
+
+def to_direction(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
     x = read_values("", ds, cfg.variables["x"])
     y = read_values("", ds, cfg.variables["y"])
 
-    values = np.degrees(np.arctan2(y.values, x.values))
+    alpha = _grid_rotation_angles(ds)  # shape (ny, nx) or scalar 0.0
+
+    values = np.degrees(np.arctan2(y.values, x.values) + alpha)
     return Data(
         name=name,
-        # timesteps=x.timesteps,
         values=values % 360,  # force to be in range [0..360)
         times=ds.time.values,
         units="degrees",
