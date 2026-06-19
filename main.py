@@ -10,7 +10,7 @@ from nc2forti.config import Configuration
 @click.option(
     "--config",
     type=click.File(),
-    default="malawi.json",
+    default="config.json",
     help="Read config from the given file",
 )
 @click.option(
