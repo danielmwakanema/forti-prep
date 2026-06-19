@@ -5,7 +5,7 @@ Converts NetCDF forecast files into the binary format expected by the [forti](ht
 ## Usage
 
 ```
-python main.py --config <config.json> --output-dir <output> --version <n> <nc-file>
+forti-prep --config <config.json> --output-dir <output> --version <n> <nc-file>
 ```
 
 | Option | Default | Description |
