@@ -86,7 +86,7 @@ class BlobWriter:
         arrays: typing.List[Data] = []
 
         for param, cfg in parameters.items():
-            data = convert.transform(param, ds, parameters[param])
+            data = convert.transform(param, ds, cfg)
             arrays.append(data)
 
         raw_data = [d.values for d in arrays]
