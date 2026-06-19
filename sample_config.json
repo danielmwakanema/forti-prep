@@ -1,0 +1,40 @@
+{
+  "area": "arctic",
+  "parameters": {
+    "air_temperature_2m": {
+      "conversion_method": null,
+      "variables": {
+        "air_temperature_2m": {
+          "netcdf_name": "air_temperature_2m",
+          "units": "celsius"
+        }
+      }
+    },
+    "wind_speed_10m": {
+      "conversion_method": "vector_to_speed",
+      "variables": {
+        "x": {
+          "netcdf_name": "x_wind_10m",
+          "units": "m/s"
+        },
+        "y": {
+          "netcdf_name": "y_wind_10m",
+          "units": "m/s"
+        }
+      }
+    },
+    "wind_from_direction_10m": {
+      "conversion_method": "vector_to_direction_from",
+      "variables": {
+        "x": {
+          "netcdf_name": "x_wind_10m",
+          "units": "m/s"
+        },
+        "y": {
+          "netcdf_name": "y_wind_10m",
+          "units": "m/s"
+        }
+      }
+    }
+  }
+}
