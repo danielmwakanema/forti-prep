@@ -28,4 +28,4 @@ from forti_prep.config import Configuration
 def cli(config: typing.TextIO, output_dir: str, version: int, nc_file: str):
     cfg: Configuration = Configuration.model_validate_json(config.read())
     writer = BlobWriter(cfg, output_dir)
-    writer.write_data(nc_file, cfg.area, version)
+    writer.write_data(nc_file, version)

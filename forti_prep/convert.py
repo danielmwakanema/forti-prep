@@ -7,6 +7,7 @@ from cf_units import Unit
 
 from . import config, weather_symbol
 from .data import Data
+from .projection import find_latlon
 
 
 def read_values(
@@ -73,15 +74,15 @@ def _grid_rotation_angles(ds: xr.Dataset) -> np.ndarray | float:
     if grid_mapping_var is None:
         return 0.0
 
-    crs = pyproj.CRS.from_cf(grid_mapping_var.attrs)
-    proj = pyproj.Proj(crs)
+    latlon = find_latlon(ds)
+    if latlon is None:
+        return 0.0
 
-    lat = ds["latitude"].values
-    lon = ds["longitude"].values
+    proj = pyproj.Proj(pyproj.CRS.from_cf(grid_mapping_var.attrs))
 
     delta = 1e-5  # degrees — small enough for accuracy, large enough to avoid rounding
-    x1, y1 = proj(lon, lat)
-    x2, y2 = proj(lon, lat + delta)
+    x1, y1 = proj(latlon.lon, latlon.lat)
+    x2, y2 = proj(latlon.lon, latlon.lat + delta)
 
     dx = x2 - x1
     dy = y2 - y1
