@@ -112,7 +112,6 @@ def precipitation_amount_1h(
     acc = read_values("", ds, cfg.variables["precipitation_amount_acc"])
 
     values = np.diff(acc.values, axis=0)
-    times = ds.time[1:]
 
     assert values.shape[0] + 1 == len(ds.time.values)
 
