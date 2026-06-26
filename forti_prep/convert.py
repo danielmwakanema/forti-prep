@@ -109,7 +109,7 @@ def to_direction(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) 
 def precipitation_amount_1h(
     name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
 ) -> Data:
-    acc = read_values("", ds, cfg.variables["precipitation_amount_acc"])
+    acc = read_values("", ds, cfg.variables["total_precipitation"])
 
     values = np.diff(acc.values, axis=0)
 
@@ -124,7 +124,7 @@ def precipitation_amount_6h(
 
     timestep_count = 6
 
-    acc = read_values("", ds, cfg.variables["precipitation_amount_acc"])
+    acc = read_values("", ds, cfg.variables["total_precipitation"])
     values = np.diff(acc.values, n=timestep_count, axis=0)
 
     assert values.shape[0] + timestep_count == len(ds.time.values)
@@ -135,20 +135,20 @@ def precipitation_amount_6h(
 
 
 def symbol_1h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    precip = read_values("", ds, cfg.variables["precipitation_amount"])
-    cloud = read_values("", ds, cfg.variables["cloud_area_fraction"])
+    precip = read_values("", ds, cfg.variables["total_precipitation"])
+    cloud = read_values("", ds, cfg.variables["total_cloud_cover"])
     return weather_symbol.get_weather_symbol_1h(precip, cloud)
 
 
 def symbol_6h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    precip = read_values("", ds, cfg.variables["precipitation_amount"])
-    cloud = read_values("", ds, cfg.variables["cloud_area_fraction"])
+    precip = read_values("", ds, cfg.variables["total_precipitation"])
+    cloud = read_values("", ds, cfg.variables["total_cloud_cover"])
     return weather_symbol.get_weather_symbol_6h(precip, cloud)
 
 
 def symbol_12h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    precip = read_values("", ds, cfg.variables["precipitation_amount"])
-    cloud = read_values("", ds, cfg.variables["cloud_area_fraction"])
+    precip = read_values("", ds, cfg.variables["total_precipitation"])
+    cloud = read_values("", ds, cfg.variables["total_cloud_cover"])
     return weather_symbol.get_weather_symbol_12h(precip, cloud)
 
 
