@@ -72,7 +72,7 @@ class BlobWriter:
             for y in range(ny):
                 for x in range(nx):
                     for d in raw_data:
-                        values = (d[:, y, x] * 10).astype("<i2")
+                        values = np.round(d[:, y, x] * 10).astype("<i2")
                         values.tofile(f)
 
         self._write_meta(parameters, data_dir)
