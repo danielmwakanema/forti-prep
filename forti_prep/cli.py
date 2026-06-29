@@ -20,11 +20,7 @@ from forti_prep.config import Configuration
     help="Write output data to this folder",
 )
 @click.option("--version", type=int, default=0, help="Upload with this version number")
-@click.argument(
-    "nc-file",
-    nargs=1,
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, writable=False),
-)
+@click.argument("nc-file", nargs=1)  # File name or opendap url
 def cli(config: typing.TextIO, output_dir: str, version: int, nc_file: str):
     cfg: Configuration = Configuration.model_validate_json(config.read())
     writer = BlobWriter(cfg, output_dir)
