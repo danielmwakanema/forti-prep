@@ -13,7 +13,7 @@ class NetcdfReader:
 
         for dim in ds.dims:
             dim_name = config.dimensions
-            if dim not in ("time", dim_name.x, dim_name.y) and ds.sizes[dim] == 1:
+            if dim not in ("time", dim_name.x, dim_name.y):
                 ds = ds.isel(**{dim: 0}, drop=True)  # type: ignore
 
         self._ds = ds
