@@ -1,0 +1,89 @@
+{
+  "area": "meps",
+  "dimensions": {
+    "x": "x",
+    "y": "y"
+  },
+  "parameters": {
+    "air_temperature_2m": {
+      "conversion_method": null,
+      "variables": {
+        "air_temperature_2m": {
+          "netcdf_name": "air_temperature_2m",
+          "units": "celsius"
+        }
+      }
+    },
+    "relative_humidity_2m": {
+      "conversion_method": null,
+      "variables": {
+        "relative_humidity_2m": {
+          "netcdf_name": "relative_humidity_2m",
+          "units": "%"
+        }
+      }
+    },
+    "cloud_area_fraction": {
+      "conversion_method": null,
+      "variables": {
+        "cloud_area_fraction": {
+          "netcdf_name": "cloud_area_fraction",
+          "units": "%"
+        }
+      }
+    },
+    "fog_area_fraction": {
+      "conversion_method": null,
+      "variables": {
+        "fog_area_fraction": {
+          "netcdf_name": "fog_area_fraction",
+          "units": "%"
+        }
+      }
+    },
+    "precipitation_amount_acc1h": {
+      "conversion_method": "precipitation_amount_1h",
+      "variables": {
+        "total_precipitation": {
+          "netcdf_name": "precipitation_amount_acc",
+          "units": "mm"
+        }
+      }
+    },
+    "precipitation_amount_acc6h": {
+      "conversion_method": "precipitation_amount_6h",
+      "variables": {
+        "total_precipitation": {
+          "netcdf_name": "precipitation_amount_acc",
+          "units": "mm"
+        }
+      }
+    },
+    "wind_speed_10m": {
+      "conversion_method": "vector_to_speed",
+      "variables": {
+        "x": {
+          "netcdf_name": "x_wind_10m",
+          "units": "m/s"
+        },
+        "y": {
+          "netcdf_name": "y_wind_10m",
+          "units": "m/s"
+        }
+      }
+    },
+    "wind_from_direction_10m": {
+      "conversion_method": "vector_to_direction_from",
+      "variables": {
+        "x": {
+          "netcdf_name": "x_wind_10m",
+          "units": "m/s"
+        },
+        "y": {
+          "netcdf_name": "y_wind_10m",
+          "units": "m/s"
+        }
+      }
+    }
+  }
+}
