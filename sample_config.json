@@ -1,5 +1,9 @@
 {
   "area": "arctic",
+  "dimensions": {
+    "x": "x",
+    "y": "y"
+  },
   "parameters": {
     "weather_symbol_1h": {
       "conversion_method": "weather_symbol_1h",
