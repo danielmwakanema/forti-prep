@@ -8,10 +8,17 @@ import numpy as np
 from .data import Data, zeros
 
 
+# Used to decide day/night when no timezone is given.
+DEFAULT_TZ: dt.tzinfo = dt.timezone(dt.timedelta(hours=2))
+
+
+# `steps` is how many consecutive samples span the window (6h -> 6 for hourly
+# data, 2 for 3-hourly data); the window's real duration stays 6/12 hours.
 def get_weather_symbol_1h(
     accumulated_precipitation: Data,
     cloud_cover_in_percent: Data,
     fog_in_percent: Optional[Data] = None,
+    tz: dt.tzinfo = DEFAULT_TZ,
     # thunder: Optional[np.ndarray] = None,
 ) -> Data:
 
@@ -27,7 +34,7 @@ def get_weather_symbol_1h(
 
     s = _calculate_symbol("weather_symbol_1h", droplets, clouds, fog, thunder)
 
-    _update_sun_state_in(s, dt.timedelta(hours=1))
+    _update_sun_state_in(s, dt.timedelta(hours=1), tz)
 
     return s
 
@@ -36,20 +43,22 @@ def get_weather_symbol_6h(
     accumulated_precipitation: Data,
     cloud_cover_in_percent: Data,
     fog_in_percent: Optional[Data] = None,
+    steps: int = 6,
+    tz: dt.tzinfo = DEFAULT_TZ,
     # thunder: Optional[Data] = None,
 ) -> Data:
     # TODO: Support thunder
 
-    droplets = _get_droplets_6h(accumulated_precipitation)
-    clouds = _get_cloud_cover_code(cloud_cover_in_percent, time_resolution=6)
+    droplets = _get_droplets_6h(accumulated_precipitation, steps)
+    clouds = _get_cloud_cover_code(cloud_cover_in_percent, time_resolution=steps)
     if fog_in_percent is not None:
-        fog = _get_fog_code(fog_in_percent, hours=6)  # type: ignore
+        fog = _get_fog_code(fog_in_percent, hours=steps)  # type: ignore
     else:
         fog = zeros(droplets)
     thunder = zeros(droplets)
 
     s = _calculate_symbol("weather_symbol_6h", droplets, clouds, fog, thunder)
-    _update_sun_state_in(s, dt.timedelta(hours=6))
+    _update_sun_state_in(s, dt.timedelta(hours=6), tz)
     return s
 
 
@@ -57,30 +66,31 @@ def get_weather_symbol_12h(
     accumulated_precipitation: Data,
     cloud_cover_in_percent: Data,
     fog_in_percent: Optional[Data] = None,
+    steps: int = 12,
+    tz: dt.tzinfo = DEFAULT_TZ,
     # thunder: Optional[Data] = None,
 ) -> Data:
     # TODO: Support thunder
 
-    droplets = _get_droplets_12h(accumulated_precipitation)
-    clouds = _get_cloud_cover_code(cloud_cover_in_percent, time_resolution=12)
+    droplets = _get_droplets_12h(accumulated_precipitation, steps)
+    clouds = _get_cloud_cover_code(cloud_cover_in_percent, time_resolution=steps)
     if fog_in_percent is not None:
-        fog = _get_fog_code(fog_in_percent, hours=12)  # type: ignore
+        fog = _get_fog_code(fog_in_percent, hours=steps)  # type: ignore
     else:
         fog = zeros(droplets)
     thunder = zeros(droplets)
 
     s = _calculate_symbol("weather_symbol_12h", droplets, clouds, fog, thunder)
-    _update_sun_state_in(s, dt.timedelta(hours=12))
+    _update_sun_state_in(s, dt.timedelta(hours=12), tz)
     return s
 
 
-def _update_sun_state_in(symbols: Data, period: dt.timedelta):
+def _update_sun_state_in(
+    symbols: Data, period: dt.timedelta, tz: dt.tzinfo = DEFAULT_TZ
+):
     period /= 2
     for i, t in enumerate(symbols.times.astype("datetime64[s]").tolist()):
-        t = (
-            t.replace(tzinfo=dt.UTC).astimezone(dt.timezone(dt.timedelta(hours=2)))
-            - period
-        )
+        t = t.replace(tzinfo=dt.UTC).astimezone(tz) - period
         if t.hour < 6 or t.hour >= 18:
             symbols.values[i] |= night
 
@@ -97,9 +107,7 @@ def _get_droplets_1h(accumulated: Data) -> Data:
     return Data("droplets", droplets, accumulated.times[1:], "")
 
 
-def _get_droplets_6h(accumulated: Data) -> Data:
-    hours = 6
-
+def _get_droplets_6h(accumulated: Data, hours: int = 6) -> Data:
     accum_start = accumulated.values[:-hours]
     accum_end = accumulated.values[hours:]
     precipitation = accum_end - accum_start
@@ -113,9 +121,7 @@ def _get_droplets_6h(accumulated: Data) -> Data:
     return Data("droplets_6h", droplets, accumulated.times[hours:], "")
 
 
-def _get_droplets_12h(accumulated: Data) -> Data:
-    hours = 12
-
+def _get_droplets_12h(accumulated: Data, hours: int = 12) -> Data:
     accum_start = accumulated.values[:-hours]
     accum_end = accumulated.values[hours:]
     precipitation = accum_end - accum_start

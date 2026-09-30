@@ -1,3 +1,4 @@
+import pathlib
 import typing
 
 import click
@@ -5,12 +6,16 @@ import click
 from forti_prep.blob import BlobWriter
 from forti_prep.config import Configuration
 
+# Anchored to the project root so `--config` finds it regardless of the
+# working directory the command is invoked from.
+_DEFAULT_CONFIG_PATH = str(pathlib.Path(__file__).resolve().parent.parent / "config.json")
+
 
 @click.command()
 @click.option(
     "--config",
     type=click.File(),
-    default="config.json",
+    default=_DEFAULT_CONFIG_PATH,
     help="Read config from the given file",
 )
 @click.option(

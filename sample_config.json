@@ -2,8 +2,10 @@
   "area": "arctic",
   "dimensions": {
     "x": "x",
-    "y": "y"
+    "y": "y",
+    "time": { "dimension": "time" }
   },
+  "coordinates": { "latitude": "latitude", "longitude": "longitude" },
   "parameters": {
     "weather_symbol_1h": {
       "conversion_method": "weather_symbol_1h",
