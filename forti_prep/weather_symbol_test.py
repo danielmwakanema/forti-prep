@@ -3,8 +3,8 @@ import unittest
 
 import numpy as np
 
-import weather_symbol
-from convert import Data
+from forti_prep import weather_symbol
+from forti_prep.data import Data
 
 
 class TestWeatherSymbols(unittest.TestCase):
@@ -261,6 +261,46 @@ class TestWeatherSymbols(unittest.TestCase):
         self.assertEqual(1, values[21])
         self.assertEqual(1 | weather_symbol.night, values[22])
         self.assertEqual(1 | weather_symbol.night, values[23])
+
+    def test_sun_state_uses_given_timezone(self):
+        symbols = Data(
+            "weather_symbol_1h",
+            np.full((24,), 1, np.int16),
+            np.arange("2024-02-20", "2024-02-21", dtype="datetime64[h]"),
+            "1",
+        )
+        tz = dt.timezone(dt.timedelta(hours=3))
+        weather_symbol._update_sun_state_in(symbols, dt.timedelta(hours=1), tz)
+
+        night = weather_symbol.night
+        # Judged 30 minutes before each timestamp, in UTC+3: 03 UTC is 05:30
+        # local (night), 04 UTC is 06:30 (day), 15 UTC is 17:30 (day), 16 UTC
+        # is 18:30 (night).
+        self.assertEqual(1 | night, symbols.values[3])
+        self.assertEqual(1, symbols.values[4])
+        self.assertEqual(1, symbols.values[15])
+        self.assertEqual(1 | night, symbols.values[16])
+
+    def test_symbol_6h_on_three_hourly_data_spans_two_steps(self):
+        times = np.datetime64("2024-02-20T06") + np.arange(6) * np.timedelta64(3, "h")
+        accumulated = Data("p", np.array([0, 0, 6, 6, 6, 6], np.float32), times, "mm")
+        cloud = Data("c", np.full(6, 100, np.float32), times, "%")
+
+        symbols = weather_symbol.get_weather_symbol_6h(
+            accumulated,
+            cloud,
+            steps=2,
+            tz=dt.timezone(dt.timedelta(hours=3)),
+        )
+
+        # 6h totals over 2 steps are [6, 6, 0, 0] mm -> heavy rain, heavy rain, dry, dry
+        self.assertEqual((4,), symbols.values.shape)
+        np.testing.assert_array_equal(symbols.times, times[2:])
+        night = weather_symbol.night
+        self.assertEqual(weather_symbol.heavyrain, symbols.values[0])
+        self.assertEqual(weather_symbol.heavyrain, symbols.values[1])
+        self.assertEqual(weather_symbol.cloudy | night, symbols.values[2])
+        self.assertEqual(weather_symbol.cloudy | night, symbols.values[3])
 
 
 if __name__ == "__main__":
