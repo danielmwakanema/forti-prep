@@ -241,6 +241,120 @@ class TestSymbolsOnThreeHourlyData(unittest.TestCase):
             convert.symbol_1h("weather_symbol_1h", ds, cfg)
 
 
+class TestPrecipitationFromComponents(unittest.TestCase):
+    # Mirrors WRF: convective (RAINC) and grid-scale (RAINNC) running totals.
+    RAINC = np.array([0, 1, 1, 3, 4, 4], dtype=np.float64)
+    RAINNC = np.array([0, 0, 2, 2, 5, 9], dtype=np.float64)
+
+    def _ds(self, **extra) -> xr.Dataset:
+        return _three_hourly(
+            6,
+            RAINC=(["time"], self.RAINC, {"units": "mm"}),
+            RAINNC=(["time"], self.RAINNC, {"units": "mm"}),
+            **extra,
+        )
+
+    def _variables(self, **extra):
+        return {
+            "convective_precipitation": config.SimpleParameterConfiguration(
+                netcdf_name="RAINC", units="mm"
+            ),
+            "grid_scale_precipitation": config.SimpleParameterConfiguration(
+                netcdf_name="RAINNC", units="mm"
+            ),
+            **extra,
+        }
+
+    def test_6h_amount_is_difference_of_summed_components(self):
+        ds = self._ds()
+        cfg = config.ParameterConfiguration(
+            conversion_method="precipitation_amount_6h_from_components",
+            variables=self._variables(),
+        )
+
+        result = convert.transform("precipitation_amount_acc6h", ds, cfg)
+
+        total = self.RAINC + self.RAINNC
+        np.testing.assert_array_equal(result.values, total[2:] - total[:-2])
+        np.testing.assert_array_equal(result.times, ds.time.values[2:])
+        self.assertEqual("mm", result.units)
+
+    def test_matches_single_accumulator_method(self):
+        ds = self._ds(TOTAL=(["time"], self.RAINC + self.RAINNC, {"units": "mm"}))
+        single = config.ParameterConfiguration(
+            conversion_method="precipitation_amount_6h",
+            variables={
+                "total_precipitation": config.SimpleParameterConfiguration(
+                    netcdf_name="TOTAL", units="mm"
+                )
+            },
+        )
+        parts = config.ParameterConfiguration(
+            conversion_method="precipitation_amount_6h_from_components",
+            variables=self._variables(),
+        )
+
+        np.testing.assert_array_equal(
+            convert.transform("p", ds, parts).values,
+            convert.transform("p", ds, single).values,
+        )
+
+    def test_symbol_ignores_cloud_cover_when_summing(self):
+        cloud = np.full(6, 0.5)
+        ds = self._ds(
+            TOTAL=(["time"], self.RAINC + self.RAINNC, {"units": "mm"}),
+            CLD=(["time"], cloud, {"units": "1"}),
+        )
+        cloud_cfg = config.SimpleParameterConfiguration(netcdf_name="CLD", units="%")
+        single = config.ParameterConfiguration(
+            conversion_method="weather_symbol_6h",
+            variables={
+                "total_precipitation": config.SimpleParameterConfiguration(
+                    netcdf_name="TOTAL", units="mm"
+                ),
+                "total_cloud_cover": cloud_cfg,
+            },
+        )
+        parts = config.ParameterConfiguration(
+            conversion_method="weather_symbol_6h_from_components",
+            variables=self._variables(total_cloud_cover=cloud_cfg),
+        )
+
+        expected = convert.transform("weather_symbol_6h", ds, single)
+        result = convert.transform("weather_symbol_6h", ds, parts)
+
+        self.assertEqual("weather_symbol_6h", result.name)
+        np.testing.assert_array_equal(result.values, expected.values)
+        np.testing.assert_array_equal(result.times, expected.times)
+
+    def test_raises_on_mismatched_component_units(self):
+        ds = self._ds()
+        cfg = config.ParameterConfiguration(
+            conversion_method="precipitation_amount_6h_from_components",
+            variables={
+                "a": config.SimpleParameterConfiguration(netcdf_name="RAINC", units="mm"),
+                "b": config.SimpleParameterConfiguration(netcdf_name="RAINNC", units="cm"),
+            },
+        )
+
+        with self.assertRaises(ValueError):
+            convert.transform("p", ds, cfg)
+
+    def test_raises_without_components(self):
+        ds = self._ds(CLD=(["time"], np.zeros(6), {"units": "1"}))
+        cfg = config.ParameterConfiguration(
+            conversion_method="weather_symbol_6h_from_components",
+            variables={
+                "total_cloud_cover": config.SimpleParameterConfiguration(
+                    netcdf_name="CLD", units="%"
+                )
+            },
+        )
+
+        with self.assertRaises(ValueError):
+            convert.transform("s", ds, cfg)
+
+
 class TestSourceUnitsOverride(unittest.TestCase):
     def test_overrides_incorrect_file_units(self):
         # Mirrors WRF's CLDFRAC2D: attrs claim "%" but values are a 0-1 fraction.

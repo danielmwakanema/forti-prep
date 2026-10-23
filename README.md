@@ -83,6 +83,8 @@ Supported `conversion_method` values and their required variable keys:
 | `weather_symbol_1h` | `total_precipitation`, `total_cloud_cover` | 1-hour weather symbol from accumulated precipitation and cloud cover |
 | `weather_symbol_6h` | `total_precipitation`, `total_cloud_cover` | 6-hour weather symbol from accumulated precipitation and cloud cover |
 | `weather_symbol_12h` | `total_precipitation`, `total_cloud_cover` | 12-hour weather symbol from accumulated precipitation and cloud cover |
+| `precipitation_amount_1h_from_components` / `precipitation_amount_6h_from_components` | *(any number of keys)* | Like `precipitation_amount_1h`/`_6h`, but for models that split accumulated precipitation across several variables (e.g. WRF's convective `RAINC` and grid-scale `RAINNC`): all configured variables are summed before differencing. They must share one unit |
+| `weather_symbol_1h_from_components` / `weather_symbol_6h_from_components` / `weather_symbol_12h_from_components` | `total_cloud_cover` plus any number of precipitation keys | Like `weather_symbol_*`, but every variable other than `total_cloud_cover` is a precipitation component summed into the total |
 | `sum` | *(any number of keys)* | Adds together several variables sharing one unit, e.g. WRF's `RAINC` + `RAINNC` |
 | `max_over_dim` | *(single key)* | Reduces one variable to 2D by taking its maximum over the dimension named in `dim`, e.g. WRF's per-level `CLDFRA` |
 | `select_level` | *(single key)* | Reduces one variable to 2D by picking `index` along the dimension named in `dim`, e.g. WRF's topmost soil layer in `SMOIS`/`TSLB` |
