@@ -112,17 +112,53 @@ def to_direction(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) 
     )
 
 
+def _accumulation_over(name: str, ds: xr.Dataset, acc: Data, hours: int) -> Data:
+    """Amount accumulated over the preceding `hours`, from a running total.
+
+    A true "value `timestep_count` steps later minus now" difference.
+    np.diff(..., n=timestep_count) is NOT this: it's the n-th order finite
+    difference, which produces near-meaningless (and sometimes negative)
+    results for accumulator data.
+    """
+    timestep_count = _steps_per(ds.time.values, hours)
+    values = acc.values[timestep_count:] - acc.values[:-timestep_count]
+
+    assert values.shape[0] + timestep_count == len(ds.time.values)
+
+    return Data(
+        name=name, values=values, times=ds.time.values[timestep_count:], units="mm"
+    )
+
+
+def _summed_precipitation(ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
+    """Total accumulated precipitation from every configured component.
+
+    For models that split precipitation across several accumulators, e.g. WRF's
+    convective (RAINC) and grid-scale (RAINNC) rain. Every variable except
+    `total_cloud_cover` is treated as a component, so the same configuration
+    shape works for both the precipitation and the weather symbol methods.
+    """
+    parts = [
+        read_values("", ds, var_cfg)
+        for key, var_cfg in cfg.variables.items()
+        if key != "total_cloud_cover"
+    ]
+    if not parts:
+        raise ValueError("no precipitation component variables configured")
+    return _sum_parts("total_precipitation", parts)
+
+
 def precipitation_amount_1h(
     name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
 ) -> Data:
-    step = _steps_per(ds.time.values, 1)
     acc = read_values("", ds, cfg.variables["total_precipitation"])
+    return _accumulation_over(name, ds, acc, 1)
 
-    values = acc.values[step:] - acc.values[:-step]
 
-    assert values.shape[0] + step == len(ds.time.values)
-
-    return Data(name=name, values=values, times=ds.time.values[step:], units="mm")
+def precipitation_amount_1h_from_components(
+    name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
+) -> Data:
+    return _accumulation_over(name, ds, _summed_precipitation(ds, cfg), 1)
 
 
 def _steps_per(times: np.ndarray, hours: int) -> int:
@@ -139,21 +175,14 @@ def _steps_per(times: np.ndarray, hours: int) -> int:
 def precipitation_amount_6h(
     name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
 ) -> Data:
-
-    timestep_count = _steps_per(ds.time.values, 6)
-
     acc = read_values("", ds, cfg.variables["total_precipitation"])
-    # A true "value `timestep_count` steps later minus now" difference.
-    # np.diff(..., n=timestep_count) is NOT this: it's the n-th order finite
-    # difference, which produces near-meaningless (and sometimes negative)
-    # results for accumulator data.
-    values = acc.values[timestep_count:] - acc.values[:-timestep_count]
+    return _accumulation_over(name, ds, acc, 6)
 
-    assert values.shape[0] + timestep_count == len(ds.time.values)
 
-    return Data(
-        name=name, values=values, times=ds.time.values[timestep_count:], units="mm"
-    )
+def precipitation_amount_6h_from_components(
+    name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
+) -> Data:
+    return _accumulation_over(name, ds, _summed_precipitation(ds, cfg), 6)
 
 
 def _symbol_tz(cfg: config.ParameterConfiguration) -> dt.tzinfo:
@@ -162,35 +191,57 @@ def _symbol_tz(cfg: config.ParameterConfiguration) -> dt.tzinfo:
     return zoneinfo.ZoneInfo(cfg.timezone)
 
 
-def symbol_1h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    _steps_per(ds.time.values, 1)
-    precip = read_values("", ds, cfg.variables["total_precipitation"])
+def _symbol(
+    name: str,
+    ds: xr.Dataset,
+    cfg: config.ParameterConfiguration,
+    hours: int,
+    precip: Data,
+) -> Data:
+    steps = _steps_per(ds.time.values, hours)
     cloud = read_values("", ds, cfg.variables["total_cloud_cover"])
-    symbol = weather_symbol.get_weather_symbol_1h(precip, cloud, tz=_symbol_tz(cfg))
+    tz = _symbol_tz(cfg)
+    if hours == 1:
+        symbol = weather_symbol.get_weather_symbol_1h(precip, cloud, tz=tz)
+    elif hours == 6:
+        symbol = weather_symbol.get_weather_symbol_6h(precip, cloud, steps=steps, tz=tz)
+    else:
+        symbol = weather_symbol.get_weather_symbol_12h(precip, cloud, steps=steps, tz=tz)
     symbol.name = name
     return symbol
+
+
+def symbol_1h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
+    precip = read_values("", ds, cfg.variables["total_precipitation"])
+    return _symbol(name, ds, cfg, 1, precip)
 
 
 def symbol_6h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    steps = _steps_per(ds.time.values, 6)
     precip = read_values("", ds, cfg.variables["total_precipitation"])
-    cloud = read_values("", ds, cfg.variables["total_cloud_cover"])
-    symbol = weather_symbol.get_weather_symbol_6h(
-        precip, cloud, steps=steps, tz=_symbol_tz(cfg)
-    )
-    symbol.name = name
-    return symbol
+    return _symbol(name, ds, cfg, 6, precip)
 
 
 def symbol_12h(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration) -> Data:
-    steps = _steps_per(ds.time.values, 12)
     precip = read_values("", ds, cfg.variables["total_precipitation"])
-    cloud = read_values("", ds, cfg.variables["total_cloud_cover"])
-    symbol = weather_symbol.get_weather_symbol_12h(
-        precip, cloud, steps=steps, tz=_symbol_tz(cfg)
-    )
-    symbol.name = name
-    return symbol
+    return _symbol(name, ds, cfg, 12, precip)
+
+
+def symbol_1h_from_components(
+    name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
+) -> Data:
+    return _symbol(name, ds, cfg, 1, _summed_precipitation(ds, cfg))
+
+
+def symbol_6h_from_components(
+    name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
+) -> Data:
+    return _symbol(name, ds, cfg, 6, _summed_precipitation(ds, cfg))
+
+
+def symbol_12h_from_components(
+    name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration
+) -> Data:
+    return _symbol(name, ds, cfg, 12, _summed_precipitation(ds, cfg))
 
 
 def _window_reduce(
@@ -243,7 +294,10 @@ def sum_variables(name: str, ds: xr.Dataset, cfg: config.ParameterConfiguration)
     grid-scale (RAINNC) fields that must be summed into one total.
     """
     parts = [read_values("", ds, var_cfg) for var_cfg in cfg.variables.values()]
+    return _sum_parts(name, parts)
 
+
+def _sum_parts(name: str, parts: list[Data]) -> Data:
     units = {p.units for p in parts}
     if len(units) != 1:
         raise ValueError(f"sum requires all variables to share one unit, got {units}")
@@ -300,6 +354,11 @@ _conversions: typing.Dict[str, _conversion_function] = {
     "weather_symbol_12h": symbol_12h,
     "precipitation_amount_1h": precipitation_amount_1h,
     "precipitation_amount_6h": precipitation_amount_6h,
+    "precipitation_amount_1h_from_components": precipitation_amount_1h_from_components,
+    "precipitation_amount_6h_from_components": precipitation_amount_6h_from_components,
+    "weather_symbol_1h_from_components": symbol_1h_from_components,
+    "weather_symbol_6h_from_components": symbol_6h_from_components,
+    "weather_symbol_12h_from_components": symbol_12h_from_components,
     "sum": sum_variables,
     "max_over_dim": max_over_dim,
     "select_level": select_level,
