@@ -1,0 +1,164 @@
+{
+  "area": "tanzania",
+  "dimensions": {
+    "x": "west_east",
+    "y": "south_north",
+    "time": {
+      "dimension": "Time",
+      "variable": "XTIME"
+    }
+  },
+  "coordinates": {
+    "latitude": "XLAT",
+    "longitude": "XLONG"
+  },
+  "parameters": {
+    "air_temperature_2m": {
+      "conversion_method": null,
+      "variables": {
+        "air_temperature_2m": {
+          "netcdf_name": "T2",
+          "units": "celsius"
+        }
+      }
+    },
+    "precipitation_amount_acc6h": {
+      "conversion_method": "precipitation_amount_6h_from_components",
+      "variables": {
+        "convective_precipitation": {
+          "netcdf_name": "RAINC",
+          "units": "mm"
+        },
+        "grid_scale_precipitation": {
+          "netcdf_name": "RAINNC",
+          "units": "mm"
+        }
+      }
+    },
+    "air_temperature_2m_max6h": {
+      "conversion_method": "max_over_window",
+      "hours": 6,
+      "variables": {
+        "air_temperature_2m_max6h": {
+          "netcdf_name": "T02_MAX",
+          "units": "celsius"
+        }
+      }
+    },
+    "air_temperature_2m_min6h": {
+      "conversion_method": "min_over_window",
+      "hours": 6,
+      "variables": {
+        "air_temperature_2m_min6h": {
+          "netcdf_name": "T02_MIN",
+          "units": "celsius"
+        }
+      }
+    },
+    "weather_symbol_6h": {
+      "conversion_method": "weather_symbol_6h_from_components",
+      "timezone": "Africa/Dar_es_Salaam",
+      "variables": {
+        "convective_precipitation": {
+          "netcdf_name": "RAINC",
+          "units": "mm"
+        },
+        "grid_scale_precipitation": {
+          "netcdf_name": "RAINNC",
+          "units": "mm"
+        },
+        "total_cloud_cover": {
+          "netcdf_name": "CLDFRAC2D",
+          "units": "%",
+          "source_units": "1"
+        }
+      }
+    },
+    "weather_symbol_12h": {
+      "conversion_method": "weather_symbol_12h_from_components",
+      "timezone": "Africa/Dar_es_Salaam",
+      "variables": {
+        "convective_precipitation": {
+          "netcdf_name": "RAINC",
+          "units": "mm"
+        },
+        "grid_scale_precipitation": {
+          "netcdf_name": "RAINNC",
+          "units": "mm"
+        },
+        "total_cloud_cover": {
+          "netcdf_name": "CLDFRAC2D",
+          "units": "%",
+          "source_units": "1"
+        }
+      }
+    },
+    "wind_speed_10m": {
+      "conversion_method": "vector_to_speed",
+      "variables": {
+        "x": {
+          "netcdf_name": "U10",
+          "units": "m/s"
+        },
+        "y": {
+          "netcdf_name": "V10",
+          "units": "m/s"
+        }
+      }
+    },
+    "wind_from_direction_10m": {
+      "conversion_method": "vector_to_direction_from",
+      "variables": {
+        "x": {
+          "netcdf_name": "U10",
+          "units": "m/s"
+        },
+        "y": {
+          "netcdf_name": "V10",
+          "units": "m/s"
+        }
+      }
+    },
+    "soil_moisture": {
+      "conversion_method": "select_level",
+      "dim": "soil_layers_stag",
+      "index": 0,
+      "variables": {
+        "soil_moisture": {
+          "netcdf_name": "SMOIS",
+          "units": "%"
+        }
+      }
+    },
+    "soil_temperature": {
+      "conversion_method": "select_level",
+      "dim": "soil_layers_stag",
+      "index": 0,
+      "variables": {
+        "soil_temperature": {
+          "netcdf_name": "TSLB",
+          "units": "celsius"
+        }
+      }
+    },
+    "relative_humidity_2m": {
+      "conversion_method": null,
+      "variables": {
+        "relative_humidity_2m": {
+          "netcdf_name": "RH02",
+          "units": "%"
+        }
+      }
+    },
+    "cloud_area_fraction": {
+      "conversion_method": null,
+      "variables": {
+        "cloud_area_fraction": {
+          "netcdf_name": "CLDFRAC2D",
+          "units": "%",
+          "source_units": "1"
+        }
+      }
+    }
+  }
+}
