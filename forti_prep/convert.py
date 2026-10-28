@@ -126,7 +126,10 @@ def _accumulation_over(name: str, ds: xr.Dataset, acc: Data, hours: int) -> Data
     assert values.shape[0] + timestep_count == len(ds.time.values)
 
     return Data(
-        name=name, values=values, times=ds.time.values[timestep_count:], units="mm"
+        name=name,
+        values=values,
+        times=ds.time.values[timestep_count:],
+        units=acc.units,
     )
 
 

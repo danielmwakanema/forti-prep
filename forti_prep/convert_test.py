@@ -130,6 +130,27 @@ class TestPrecipitationAmount6h(unittest.TestCase):
         np.testing.assert_array_equal(result.values, expected)
         self.assertTrue((result.values >= 0).all())
 
+    def test_units_follow_configured_target_unit(self):
+        acc = np.arange(8, dtype=np.float64)
+        times = np.arange("2024-02-20", "2024-02-21", dtype="datetime64[h]")[: len(acc)]
+        ds = xr.Dataset(
+            data_vars={"TACC_PRECIP": (["time"], acc, {"units": "mm"})},
+            coords={"time": times},
+        )
+        cfg = config.ParameterConfiguration(
+            conversion_method="precipitation_amount_6h",
+            variables={
+                "total_precipitation": config.SimpleParameterConfiguration(
+                    netcdf_name="TACC_PRECIP", units="m"
+                )
+            },
+        )
+
+        result = convert.precipitation_amount_6h("precipitation_amount_6h", ds, cfg)
+
+        self.assertEqual("m", result.units)
+        np.testing.assert_allclose(result.values, (acc[6:] - acc[:-6]) / 1000)
+
 
 class TestPrecipitationAmount6hCadence(unittest.TestCase):
     def _run(self, step_hours: int, n: int):
